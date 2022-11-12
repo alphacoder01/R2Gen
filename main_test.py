@@ -86,7 +86,11 @@ def parse_agrs():
     parser.add_argument('--trim_vocab', type=bool, default=False)
     parser.add_argument('--use_aug', type=bool, default=False)
     parser.add_argument('--use_pretrained', type=bool, default=False)
+    parser.add_argument('--eval', type=bool, default=False)
+    parser.add_argument('--path2GT', type=str, default='')
+    parser.add_argument('--path2Pred', type=str, default='')
     args = parser.parse_args()
+
     return args
 
 
@@ -114,12 +118,44 @@ def main():
     metrics = compute_scores
 
     # build trainer and start to train
-    tester = Tester(model, criterion, metrics, args, test_dataloader)
-    res = tester.test()
-    ids = [i for i in range(len(res))]
+    if args.eval:
+        PGT = args.path2GT
+        PP = args.path2Pred
 
-    df = pd.DataFrame(list(zip(ids,res)), columns=['Id','Caption'])
-    df.to_csv('predicted_report_Q2.csv')
+        true_rep = pd.read_csv(PGT)
+        true_rep.fillna('',inplace=True)
+        true_rep['GT_cap'] = true_rep['6'] + true_rep['7']
+        test_gts = true_rep['GT_cap'].values
+        test_res = pd.read_csv(PP)['Caption'].values
+        if 'Q3' in PP:
+            test_res= [test_res[i] for i in range(len(test_res)) if i%2 == 0 ]
+        print(test_gts)
+        print(test_res)
+        # print(test_res)
+        # print(test_gts)
+
+        # test_gts, test_res = [], []
+        true_dct = {i: [gt] for i, gt in enumerate(test_gts)}
+        pred_dct = {i: [re] for i, re in enumerate(test_res)}
+
+        print(true_dct.keys())
+        print(pred_dct.keys())
+
+        test_met = metrics(true_dct,pred_dct)
+        print(**{'test_' + k: v for k, v in test_met.items()})
+        
+
+    else:
+        tester = Tester(model, criterion, metrics, args, test_dataloader)
+        res = tester.test()
+        ids = [i for i in range(len(res))]
+
+        df = pd.DataFrame(list(zip(ids,res)), columns=['Id','Caption'])
+        import os 
+        if os.path.isfile('../predicted_report_Q2.csv'):
+            df.to_csv('../predicted_report_Q3.csv')
+        else:
+            df.to_csv('../predicted_report_Q2.csv')
 
 
 if __name__ == '__main__':

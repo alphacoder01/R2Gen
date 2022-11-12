@@ -10,6 +10,8 @@ results/
 *.jpg
 *.pickle
 *.pth
+*.txt
+*.csv
 
 # Distribution / packaging
 .Python
